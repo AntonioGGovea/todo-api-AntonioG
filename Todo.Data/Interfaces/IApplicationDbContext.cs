@@ -5,8 +5,8 @@ namespace Todo.Data.Interfaces;
 
 public interface IApplicationDbContext
 {
-    DbSet<TodoModel> Todos { get; set; }
-    //DbSet<User> Users { get; set; }
+    DbSet<TodoModel> Todo { get; set; }
+    //DbSet<ApplicationUser> Users { get; set; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

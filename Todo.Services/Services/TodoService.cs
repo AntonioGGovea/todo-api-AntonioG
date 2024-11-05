@@ -9,9 +9,9 @@ namespace Todo.Busines.Services;
 
 public class TodoService : ITodoService
 {
-    private readonly ApplicationDbContext _database;
+    private readonly IApplicationDbContext _database;
 
-    public TodoService(ApplicationDbContext database) => _database = database;
+    public TodoService(IApplicationDbContext database) => _database = database;
 
     //public Task<List<TodoModel>> GetTodos()
     //{
