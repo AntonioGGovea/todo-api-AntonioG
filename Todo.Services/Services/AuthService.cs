@@ -101,17 +101,17 @@ public class AuthService : IAuthService
             {
                 Subject = new(
                 [
-                    new(ClaimTypes.NameIdentifier, user.UserName)
+                    new(ClaimTypes.NameIdentifier, user.UserName),
                 ]),
                 Audience = _authConfig.Audience,
+                Issuer = _authConfig.Issuer,
                 Expires = tokenExpiration,
                 SigningCredentials = signingCredentials
             };
             
             var token = tokenHandler.CreateToken(tokenDescriptor);
 
-            var test = tokenHandler.WriteToken(token);
-            return test;
+            return tokenHandler.WriteToken(token);
         }
         catch
         {

@@ -1,6 +1,6 @@
 ﻿namespace Todo.Services.Dtos;
 
-internal class TodoCreateDto
+public class TodoCreateDto
 {
     public string Title { get; set; }
 

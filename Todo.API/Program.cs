@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using System.Security.Claims;
 using System.Text;
 using Todo.Busines.Services;
 using Todo.Data;
@@ -17,8 +18,6 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
                             ?? throw new InvalidOperationException("Connection string not found.");
 
 builder.Services.AddDbContext<IApplicationDbContext, ApplicationDbContext>(options => options.UseSqlServer(connectionString));
-
-// TODO: add cors
 
 // Identity Configuration
 builder.Services
@@ -41,23 +40,26 @@ builder.Services.Configure<AuthConfiguration>(authConfigRaw);
 var key = Encoding.UTF8.GetBytes(authConfig.Secret);
 
 builder.Services
-    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddAuthentication(option =>
+    {
+        option.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+        option.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+    })
     .AddJwtBearer(x =>
     {
-        x.RequireHttpsMetadata = false;
+        //x.RequireHttpsMetadata = false;
         //x.IncludeErrorDetails = true;
         x.SaveToken = true;
         x.TokenValidationParameters = new TokenValidationParameters
         {
-            //NameClaimType = "username",
+            NameClaimType = ClaimTypes.NameIdentifier,
             ValidIssuer = authConfig.Issuer,
-            //ValidAudience = authConfig.Audience,
-            ValidateAudience = false,
+            ValidAudience = authConfig.Audience,
+            //ValidateAudience = false,
             IssuerSigningKey = new SymmetricSecurityKey(key),
             //ValidateIssuer = false, //This and the next parameter must be set to true during production
-            //ValidateAudience = false
+            //ValidateIssuer = false,
             ValidateIssuerSigningKey = true,
-            //ClockSkew = TimeSpan.Zero
         };
     });
 
@@ -66,6 +68,10 @@ builder.Services.AddAuthorization();
 builder.Services.AddScoped<ITodoService, TodoService>()
                 .AddScoped<IAuthService, AuthService>();
 
+//builder.Services.AddCors(options =>
+//{
+//    options.AddPolicy("AllowAll")
+//})
 
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
@@ -81,6 +87,10 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+app.UseCors(x => x.AllowAnyOrigin()
+                .AllowAnyHeader()
+                .AllowAnyMethod());
 
 app.UseAuthentication();
 app.UseAuthorization();
