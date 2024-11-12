@@ -37,41 +37,32 @@ public class AuthService : IAuthService
             Email = user.Email,
         };
 
-        var userExists = await UserExists(identityUser.UserName);
-        if (userExists)
+        var userAlreadyExists = await UserExists(identityUser.UserName);
+        if (userAlreadyExists)
             throw new AuthenticationException($"A user with name {identityUser.UserName} already exists", ErrorCodes.Auth.DuplicateUser);
 
         var result = await _userManager.CreateAsync(identityUser, user.Password);
 
         if (!result.Succeeded)
-        {
-            // TODO: Log the errors returned in result And could return result or result.succeded
             throw new InvalidOperationException($"A problem occured while creating the user {identityUser.UserName}");
-        }
     }
 
     public async Task Login(UserDto user)
     {
-        var userFromDb = await _userManager.FindByEmailAsync(user.Email);
-        if (userFromDb == null)
-                throw new AuthenticationException($"The user does not exist", ErrorCodes.Auth.UserDoesNotExist);
+        var userFromDb = await _userManager.FindByEmailAsync(user.Email)
+            ?? throw new AuthenticationException($"The user does not exist", ErrorCodes.Auth.UserDoesNotExist);
 
         if (userFromDb.AccessFailedCount >= 3)
-        {
-            var lockoutResult = await _userManager.SetLockoutEndDateAsync(userFromDb, DateTime.UtcNow.AddMinutes(5));
-            if (!lockoutResult.Succeeded)
-                throw new InvalidOperationException("There was a problem while trying to lock the user account");
-        }
+            await LockoutUserAccount(userFromDb);
 
         var signinResult = await _signinManager.PasswordSignInAsync(userFromDb, user.Password, isPersistent: false, lockoutOnFailure: false);
 
         if (!signinResult.Succeeded)
         {
             if (signinResult.IsLockedOut)
-            {
                 throw new AuthenticationException("User is locked out", ErrorCodes.Auth.UserIsLockedOut);
-            }
-            var failedCount = await _userManager.AccessFailedAsync(userFromDb);
+
+            await _userManager.AccessFailedAsync(userFromDb);
             throw new AuthenticationException("The user was not able to sign in, increasing failed count", ErrorCodes.Auth.AuthenticationFailed);
         }
     }
@@ -80,33 +71,27 @@ public class AuthService : IAuthService
 
     public async Task<string> GenerateJWTToken(string userName)
     {
-        var userFromDb = await _userManager.FindByNameAsync(userName);
-        if (userFromDb == null)
-            throw new AuthenticationException($"The user does not exist", ErrorCodes.Auth.UserDoesNotExist);
+        var userFromDb = await _userManager.FindByNameAsync(userName)
+            ?? throw new AuthenticationException($"The user does not exist", ErrorCodes.Auth.UserDoesNotExist);
 
         return GenerateJWTTokenByApplicationUser(userFromDb);
     }
 
     private string GenerateJWTTokenByApplicationUser(ApplicationUser user)
     {
+        if (user.UserName == null) throw new ArgumentNullException(nameof(user.UserName));
+
         try
         {
-            var key = Encoding.UTF8.GetBytes(_authConfig.Secret);
-            var signingCredentials = new SigningCredentials(
-                                            new SymmetricSecurityKey(key),
-                                            SecurityAlgorithms.HmacSha256Signature);
             var tokenExpiration = DateTime.UtcNow.AddMinutes(_authConfig.ExpirationInMinutes);
             var tokenHandler = new JwtSecurityTokenHandler();
             var tokenDescriptor = new SecurityTokenDescriptor()
             {
-                Subject = new(
-                [
-                    new(ClaimTypes.NameIdentifier, user.UserName),
-                ]),
+                Subject = new([new(ClaimTypes.NameIdentifier, user.UserName)]),
                 Audience = _authConfig.Audience,
                 Issuer = _authConfig.Issuer,
                 Expires = tokenExpiration,
-                SigningCredentials = signingCredentials
+                SigningCredentials = GetSigningCredentials()
             };
             
             var token = tokenHandler.CreateToken(tokenDescriptor);
@@ -117,6 +102,22 @@ public class AuthService : IAuthService
         {
             throw new Exception("An error ocurred while creating the token");
         }
+    }
+
+    private SigningCredentials GetSigningCredentials()
+    {
+
+        var key = Encoding.UTF8.GetBytes(_authConfig.Secret);
+        return  new SigningCredentials(
+                        new SymmetricSecurityKey(key),
+                        SecurityAlgorithms.HmacSha256Signature);
+    }
+
+    private async Task LockoutUserAccount(ApplicationUser user)
+    {
+        var lockoutResult = await _userManager.SetLockoutEndDateAsync(user, DateTime.UtcNow.AddMinutes(5));
+        if (!lockoutResult.Succeeded)
+            throw new InvalidOperationException("There was a problem while trying to lock the user account");
     }
 
     private async Task<bool> UserExists(string username)

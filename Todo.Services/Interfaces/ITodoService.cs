@@ -7,7 +7,7 @@ public interface ITodoService
 {
     Task<List<TodoModel>> GetTodos();
     Task<TodoModel?> GetTodoById(int id);
-    Task<bool> UpdateTodo(TodoModel todo);
+    Task UpdateTodo(TodoModel todo);
     Task<TodoModel> CreateTodo(TodoCreateDto todo);
     Task DeleteTodo(TodoModel todo);
 }

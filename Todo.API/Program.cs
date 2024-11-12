@@ -35,8 +35,8 @@ builder.Services
 var authConfigRaw = builder.Configuration.GetSection("AuthConfiguration");
 var authConfig = authConfigRaw?.Get<AuthConfiguration>()
                         ?? throw new InvalidOperationException("Connection string not found.");
-builder.Services.Configure<AuthConfiguration>(authConfigRaw);
 
+builder.Services.Configure<AuthConfiguration>(authConfigRaw);
 var key = Encoding.UTF8.GetBytes(authConfig.Secret);
 
 builder.Services
@@ -47,18 +47,13 @@ builder.Services
     })
     .AddJwtBearer(x =>
     {
-        //x.RequireHttpsMetadata = false;
-        //x.IncludeErrorDetails = true;
         x.SaveToken = true;
         x.TokenValidationParameters = new TokenValidationParameters
         {
             NameClaimType = ClaimTypes.NameIdentifier,
             ValidIssuer = authConfig.Issuer,
             ValidAudience = authConfig.Audience,
-            //ValidateAudience = false,
             IssuerSigningKey = new SymmetricSecurityKey(key),
-            //ValidateIssuer = false, //This and the next parameter must be set to true during production
-            //ValidateIssuer = false,
             ValidateIssuerSigningKey = true,
         };
     });
@@ -68,25 +63,13 @@ builder.Services.AddAuthorization();
 builder.Services.AddScoped<ITodoService, TodoService>()
                 .AddScoped<IAuthService, AuthService>();
 
-//builder.Services.AddCors(options =>
-//{
-//    options.AddPolicy("AllowAll")
-//})
-
 builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
-
 app.UseHttpsRedirection();
+
+app.UseExceptionHandler("/error");
 
 app.UseCors(x => x.AllowAnyOrigin()
                 .AllowAnyHeader()

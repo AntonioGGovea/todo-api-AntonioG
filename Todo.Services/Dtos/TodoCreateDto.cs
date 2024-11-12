@@ -1,8 +1,11 @@
-﻿namespace Todo.Services.Dtos;
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace Todo.Services.Dtos;
 
 public class TodoCreateDto
 {
-    public string Title { get; set; }
+    [Required]
+    public string Title { get; set; } = string.Empty;
 
     public bool IsDone { get; set; }
 }

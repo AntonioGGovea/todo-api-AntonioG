@@ -17,23 +17,25 @@ public class TodoController : ControllerBase
         _todoService = todoService;
 
     [HttpGet("{id}")]
-    public async Task<IActionResult> GetTodo(int id)
+    public async Task<ActionResult<TodoModel>> GetTodo(int id)
     {
         var todo = await _todoService.GetTodoById(id);
 
-        return todo == null
-            ? NotFound()
-            : Ok(todo);
+        if (todo == null) return NotFound();
+        return Ok(todo);
     }
 
     [HttpGet]
-    public Task<List<TodoModel>> GetAll() =>
-        _todoService.GetTodos();
+    public async Task<ActionResult<List<TodoModel>>> GetAll()
+    {
+        return Ok(await _todoService.GetTodos());
+    }
 
     [HttpPost]
     public async Task<ActionResult<TodoModel>> CreateTodo([FromBody] TodoCreateDto model)
     {
-        return await _todoService.CreateTodo(model);
+        var todo = await _todoService.CreateTodo(model);
+        return StatusCode(StatusCodes.Status201Created, todo);
     }
 
     [HttpPatch]

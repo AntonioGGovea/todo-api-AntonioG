@@ -19,7 +19,6 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost]
-    //[ValidateAntiForgeryToken]
     [AllowAnonymous]
     public async Task<IActionResult> CreateUser([FromBody] UserDto user)
     {

@@ -1,6 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Todo.Busines.Exceptions;
-using Todo.Data;
 using Todo.Data.Interfaces;
 using Todo.Data.Models;
 using Todo.Services.Dtos;
@@ -14,39 +13,20 @@ public class TodoService : ITodoService
 
     public TodoService(IApplicationDbContext database) => _database = database;
 
-    public Task<List<TodoModel>> GetTodos()
-    {
-        try
-        {
-            return _database.Todo.ToListAsync();
-        }
-        catch
-        {
-            throw new DatabaseException("Something when wrong when retriving the list of Todos from the database");
-        }
-    }
+    public Task<List<TodoModel>> GetTodos() =>
+        _database.Todo.ToListAsync();
 
-    public Task<TodoModel?> GetTodoById(int id)
-    {
-        try
-        {
-            return _database.Todo.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id);
-        }
-        catch
-        {
-            throw new DatabaseException($"Something when wrong when retriving Todos with ID {id} from the database");
-        }
-    }
+    public Task<TodoModel?> GetTodoById(int id) =>
+        _database.Todo.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id);
 
-    public async Task<bool> UpdateTodo(TodoModel todo)
+    public async Task UpdateTodo(TodoModel todo)
     {
         try
         {
             _database.Todo.Update(todo);
-            var result = await _database.SaveChangesAsync();
-            return result > 0;
+            await _database.SaveChangesAsync();
         }
-        catch(Exception ex)
+        catch(Exception)
         {
             throw new DatabaseException($"Something when wrong while updating the Todo {todo.Id}");
         }
